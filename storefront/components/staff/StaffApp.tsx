@@ -46,7 +46,7 @@ export function StaffApp({ pinRequired }: { pinRequired: boolean }) {
     <div className="flex min-h-dvh flex-col">
       <header className="flex h-20 shrink-0 items-center justify-between border-b border-line px-6">
         <div className="flex items-center gap-4">
-          <Logo size={30} />
+          <Logo size={36} />
           <span className="label text-muted text-lg tracking-[0.2em]">Staff</span>
         </div>
         <nav className="flex h-full">

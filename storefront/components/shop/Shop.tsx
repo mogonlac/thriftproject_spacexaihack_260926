@@ -83,7 +83,7 @@ export function Shop({ initialItems }: { initialItems: Item[] }) {
       <header className="shrink-0 border-b border-line bg-paper">
         <div className="flex h-20 items-center justify-between gap-6 px-6">
           <Link href="/" aria-label="Start again" className="flex h-16 items-center">
-            <Logo size={34} />
+            <Logo size={40} />
           </Link>
           <div className="flex h-full items-stretch">
             {(

@@ -56,7 +56,7 @@ export default function InventoryPage() {
     <div className="inventory">
       <header className="topbar">
         <div className="brand">
-          <Logo size={30} />
+          <Logo size={36} />
           <strong>Inventory</strong>
           <span className="muted station">{items ? `${items.length} items` : "loading…"}</span>
         </div>

@@ -462,7 +462,7 @@ export default function Scanner() {
     <div className={`scanner phase-${phase}`} onPointerDown={() => sounds.unlock()}>
       <header className="topbar">
         <div className="brand">
-          <Logo size={30} />
+          <Logo size={36} />
           <strong>Intake</strong>
           <span className="muted station">{STATION}</span>
         </div>
