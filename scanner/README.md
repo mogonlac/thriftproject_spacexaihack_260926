@@ -44,9 +44,12 @@ Frames are sampled at 10 fps into a 64×48 canvas.
 - **Tuning:** thresholds can be adjusted live in Settings.
 - **Non-garments:** if the AI reports no garment (a hand, an empty hanger), no item is created.
 
-The upload contains two images:
-- a crop around the detected garment, which becomes `photos[0]`
-- the untouched full frame, saved as `original_photo_url`
+The upload contains up to three images:
+- **studio cutout** (`photos[0]`): the garment separated from the wall by comparing against a full-res shot of the empty station, then placed on off-white with a soft shadow (`lib/client/cutout.ts`). Skipped if the mask looks wrong.
+- **crop** (`photos[1]`, or `[0]` without a cutout): the real photo around the garment. This is what the AI reads, so tags are never erased.
+- **original** (`original_photo_url`): the untouched full frame.
+
+Tags are read in two passes (`lib/analysis/tags.ts`). If a tag is visible but its price or size wasn't read confidently, it's cropped from the full-res photo, enlarged and read again.
 
 ---
 
@@ -73,7 +76,7 @@ The upload contains two images:
 | `price_pence` | int, not null | see `price_source` |
 | `suggested_price_pence` | int | AI estimate, always filled |
 | `rack` | text | session rack, e.g. `B3` |
-| `photos` | text[] | `[0]` = public URL of the garment crop (Supabase Storage bucket `item-photos`, path `scans/<id>.jpg`) |
+| `photos` | text[] | public URLs in Supabase Storage bucket `item-photos`. `[0]` = studio cutout on off-white (`scans/<id>-studio.jpg`), `[1]` = real photo crop (`scans/<id>.jpg`). If the cutout fails there is only the crop. |
 | `tags` | text[] | lowercase search keywords |
 | `status` | `available`\|`on_receipt`\|`sold` | scanner always writes `available`; the storefront owns later changes |
 | `sku`, `receipt_id` | null | not set by the scanner |
