@@ -4,6 +4,7 @@ import { Logo } from "@thrift/shared/Logo";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ItemCard } from "./ItemCard";
+import { SizePrompt } from "./SizePrompt";
 import { DEFAULT_ROI, DH, DW, GarmentDetector, nearestColourName, type Roi } from "@/lib/detector";
 import { captureFrame, grabBackground, parseRackCode, readCodes } from "@/lib/client/capture";
 import { setSoundEnabled, sounds } from "@/lib/client/sound";
@@ -557,6 +558,17 @@ export default function Scanner() {
               </div>
             )}
           </div>
+
+          {lastItem && (
+            <SizePrompt
+              key={lastItem.id}
+              item={lastItem}
+              onSaved={(item) => {
+                setLastItem(item);
+                setRecent((r) => r.map((x) => (x.id === item.id ? item : x)));
+              }}
+            />
+          )}
 
           {warning && <div className="warning" onClick={() => setWarning("")}>{warning}</div>}
 

@@ -35,6 +35,8 @@ Use a laptop webcam, a USB camera, or an iPhone via Continuity Camera; pick it i
 | `R` | Recalibrate the empty background |
 | `D` | Show the detection mask (for tuning) |
 
+**Sizes:** after each save, a **"What size is it?"** panel asks for the size with one tap. It offers letter sizes, UK dress sizes, waist or UK shoe sizes depending on the garment, and skips bags and accessories. Whatever the AI read off the label is pre-selected, so a volunteer just confirms or corrects it. The answer is saved to `size_label` / `size_alpha` / `waist_in`, so the storefront size filters pick it up. It's optional: the station keeps scanning hands-free either way (`components/SizePrompt.tsx`, `lib/sizes.ts`).
+
 **Racks:** tap the big rack pill once per batch, and every scan is assigned to that rack. Hands-free alternative: hold up a QR card that encodes `RACK:B3`. It switches the rack and is not saved as an item. QR reading needs Chrome/Edge (BarcodeDetector).
 
 ### How detection works (`lib/detector.ts`)

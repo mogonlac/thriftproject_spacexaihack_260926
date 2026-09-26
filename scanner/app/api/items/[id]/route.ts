@@ -29,6 +29,10 @@ export async function PATCH(req: NextRequest, ctx: RouteContext<"/api/items/[id]
     patch.price_pence = Math.round(body.price_pence);
     patch.price_source = "staff";
   }
+  if (body.waist_in === null) patch.waist_in = null;
+  else if (typeof body.waist_in === "number" && Number.isInteger(body.waist_in) && body.waist_in >= 18 && body.waist_in <= 60) {
+    patch.waist_in = body.waist_in;
+  }
   if (typeof body.needs_review === "boolean") patch.needs_review = body.needs_review;
 
   try {
