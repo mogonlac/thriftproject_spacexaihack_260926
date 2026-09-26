@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ItemCard } from "./ItemCard";
 import { DEFAULT_ROI, DH, DW, GarmentDetector, nearestColourName, type Roi } from "@/lib/detector";
-import { captureFrame, parseRackCode, readCodes } from "@/lib/client/capture";
+import { captureFrame, grabBackground, parseRackCode, readCodes } from "@/lib/client/capture";
 import { setSoundEnabled, sounds } from "@/lib/client/sound";
 import { gbp, sizeText } from "@/lib/format";
 import type { Item } from "@/lib/types";
@@ -57,7 +57,7 @@ function loadSettings(): Settings {
   }
 }
 
-interface Pending { photo: Blob; original: Blob; hints: { colour?: string; aspect?: number; barcode?: string | null } }
+interface Pending { photo: Blob; original: Blob; cutout: Blob | null; hints: { colour?: string; aspect?: number; barcode?: string | null } }
 
 const PHASE_COPY: Record<Phase, { title: string; sub: string }> = {
   starting: { title: "Starting camera", sub: "Allow camera access if asked" },
@@ -81,6 +81,7 @@ export default function Scanner() {
   const maskRef = useRef<HTMLCanvasElement>(null);
   const detRef = useRef(new GarmentDetector());
   const streamRef = useRef<MediaStream | null>(null);
+  const bgFullRef = useRef<HTMLCanvasElement | null>(null); // full-res empty station, for cutouts
 
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const settingsRef = useRef(settings);
@@ -112,6 +113,7 @@ export default function Scanner() {
     lastCodeScan: 0,
     codeBusy: false,
     lastTelemetry: 0,
+    lastBgGrab: 0,
     lastSnapshot: 0,
     pending: null as Pending | null,
   });
@@ -210,6 +212,7 @@ export default function Scanner() {
     const form = new FormData();
     form.append("photo", pending.photo, "photo.jpg");
     form.append("original", pending.original, "original.jpg");
+    if (pending.cutout) form.append("cutout", pending.cutout, "cutout.jpg");
     form.append("rack", settingsRef.current.rack);
     form.append("station", STATION);
     form.append("hints", JSON.stringify(pending.hints));
@@ -262,7 +265,7 @@ export default function Scanner() {
     sounds.shutter();
 
     try {
-      const shot = await captureFrame(v, e.lastBbox, detRef.current.roi);
+      const shot = await captureFrame(v, e.lastBbox, detRef.current.roi, bgFullRef.current);
       const codes = await readCodes(shot.full);
       const rack = codes.map(parseRackCode).find(Boolean);
       if (rack) {
@@ -275,10 +278,11 @@ export default function Scanner() {
       }
       setCapturedUrl((old) => {
         if (old) URL.revokeObjectURL(old);
-        return URL.createObjectURL(shot.photo);
+        return URL.createObjectURL(shot.cutout ?? shot.photo);
       });
       const pending: Pending = {
         photo: shot.photo,
+        cutout: shot.cutout,
         original: shot.original,
         hints: {
           colour: e.lastColour ? nearestColourName(e.lastColour) : undefined,
@@ -354,7 +358,13 @@ export default function Scanner() {
       }
 
       if (det.calibrating) { setPhase("calibrating"); return; }
-      if (wasCalibrating) { e.present = false; setPhase("ready"); return; }
+      if (wasCalibrating) {
+        e.present = false;
+        bgFullRef.current = grabBackground(v);
+        e.lastBgGrab = now;
+        setPhase("ready");
+        return;
+      }
       if (p === "calibrating") return; // waiting for the delayed calibration start
 
       // Presence with hysteresis
@@ -396,7 +406,11 @@ export default function Scanner() {
       if (!e.present) {
         e.stableSince = null;
         setProgress(0);
-        if (st.presence < S.enter * 0.25 && st.motion < 0.005) det.adapt(frame, 0.02);
+        if (st.presence < S.enter * 0.25 && st.motion < 0.005) {
+          det.adapt(frame, 0.02);
+          // keep the full-res empty shot fresh for cutouts as the light changes
+          if (now - e.lastBgGrab > 10_000) { bgFullRef.current = grabBackground(v); e.lastBgGrab = now; }
+        }
         setPhase("ready");
         return;
       }

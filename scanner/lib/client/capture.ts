@@ -1,4 +1,5 @@
 import type { Roi } from "../detector";
+import { makeCutout } from "./cutout";
 
 const MAX_ORIGINAL = 1600; // px, long edge
 const MAX_CROP = 2400; // keep full camera resolution so small tags stay legible
@@ -11,9 +12,10 @@ function toJpeg(canvas: HTMLCanvasElement, quality = 0.86): Promise<Blob> {
 
 /**
  * Grab the current video frame at full resolution.
- * Returns the untouched original plus a padded crop around the garment bbox.
+ * Returns the untouched original, a padded crop around the garment bbox, and —
+ * when an empty-station shot is available — a studio-style cutout of that crop.
  */
-export async function captureFrame(video: HTMLVideoElement, bbox: Roi | null, fallbackRoi: Roi) {
+export async function captureFrame(video: HTMLVideoElement, bbox: Roi | null, fallbackRoi: Roi, background: HTMLCanvasElement | null) {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) throw new Error("Camera not ready");
 
@@ -41,8 +43,31 @@ export async function captureFrame(video: HTMLVideoElement, bbox: Roi | null, fa
   crop.height = Math.round(ch * cs);
   crop.getContext("2d")!.drawImage(full, x0, y0, cw, ch, 0, 0, crop.width, crop.height);
 
-  const [original, photo] = await Promise.all([toJpeg(orig, 0.82), toJpeg(crop)]);
-  return { original, photo, aspect: ch / cw, full };
+  let cutoutCanvas: HTMLCanvasElement | null = null;
+  if (background) {
+    try {
+      cutoutCanvas = makeCutout(full, background, { x: x0, y: y0, w: cw, h: ch }, crop.width, crop.height);
+    } catch (err) {
+      console.warn("cutout failed", err);
+    }
+  }
+
+  const [original, photo, cutout] = await Promise.all([
+    toJpeg(orig, 0.82),
+    toJpeg(crop),
+    cutoutCanvas ? toJpeg(cutoutCanvas, 0.88) : Promise.resolve(null),
+  ]);
+  return { original, photo, cutout, aspect: ch / cw, full };
+}
+
+/** Full-resolution still of the empty station, used as the cutout reference. */
+export function grabBackground(video: HTMLVideoElement): HTMLCanvasElement | null {
+  if (!video.videoWidth) return null;
+  const c = document.createElement("canvas");
+  c.width = video.videoWidth;
+  c.height = video.videoHeight;
+  c.getContext("2d")!.drawImage(video, 0, 0);
+  return c;
 }
 
 // ---- Barcode / rack QR (Chrome/Edge/Android BarcodeDetector; silently absent elsewhere) ----

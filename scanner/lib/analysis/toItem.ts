@@ -14,7 +14,7 @@ const TEMPLATE_BY_CATEGORY: Record<string, string> = {
 
 export function analysisToItem(
   { analysis: a, model }: AnalysisResult,
-  ctx: { rack: string; photoUrl: string; originalPhotoUrl: string | null; scanSource: string; barcode: string | null },
+  ctx: { rack: string; photoUrls: string[]; originalPhotoUrl: string | null; scanSource: string; barcode: string | null },
 ): NewItem {
   const c = a.confidence;
   const tagPrice = a.tag_price_gbp != null && a.tag_price_gbp > 0 && c.price_tag >= TAG_PRICE_MIN_CONFIDENCE
@@ -40,7 +40,7 @@ export function analysisToItem(
     price_pence: tagPrice != null ? toPence(tagPrice) : suggested,
     suggested_price_pence: suggested,
     rack: ctx.rack,
-    photos: [ctx.photoUrl],
+    photos: ctx.photoUrls,
     tags: Array.from(new Set(a.tags.map((t) => t.toLowerCase().trim()).filter(Boolean))).slice(0, 12),
     status: "available",
 

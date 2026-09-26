@@ -10,6 +10,7 @@ export const maxDuration = 60;
 // POST multipart/form-data:
 //   photo     JPEG — garment crop (becomes photos[0])
 //   original  JPEG — full untouched camera frame (optional)
+//   cutout    JPEG — garment on a studio background (optional; becomes photos[0])
 //   rack      text — current session rack, e.g. 'B3'
 //   hints     JSON — ClientHints (colour, aspect, barcode) for the fallback analyser
 //   station   text — scan_source label
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
 
   const photo = form.get("photo");
   const original = form.get("original");
+  const cutout = form.get("cutout");
   const rack = String(form.get("rack") ?? "").trim();
   const station = String(form.get("station") ?? "station-1").slice(0, 64);
   if (!(photo instanceof Blob) || photo.size === 0) {
@@ -39,6 +41,7 @@ export async function POST(req: Request) {
   const id = randomUUID();
   const photoBuf = Buffer.from(await photo.arrayBuffer());
   const originalBuf = original instanceof Blob && original.size > 0 ? Buffer.from(await original.arrayBuffer()) : null;
+  const cutoutBuf = cutout instanceof Blob && cutout.size > 0 ? Buffer.from(await cutout.arrayBuffer()) : null;
 
   // Upload and analysis run in parallel; neither blocks the other on failure.
   const warnings: string[] = [];
@@ -54,9 +57,10 @@ export async function POST(req: Request) {
   };
 
   try {
-    const [photoUrl, originalUrl, result] = await Promise.all([
+    const [photoUrl, originalUrl, cutoutUrl, result] = await Promise.all([
       upload(`${id}.jpg`, photoBuf),
       originalBuf ? upload(`${id}-original.jpg`, originalBuf).catch(() => null) : Promise.resolve(null),
+      cutoutBuf ? upload(`${id}-studio.jpg`, cutoutBuf).catch(() => null) : Promise.resolve(null),
       analyseGarment(photoBuf, hints),
     ]);
 
@@ -68,7 +72,8 @@ export async function POST(req: Request) {
     const item = await store.insertItem(
       analysisToItem(result, {
         rack,
-        photoUrl,
+        // Studio cutout is the hero image; the real crop stays as the second photo.
+        photoUrls: cutoutUrl ? [cutoutUrl, photoUrl] : [photoUrl],
         originalPhotoUrl: originalUrl,
         scanSource: station,
         barcode: hints.barcode ?? null,
