@@ -10,13 +10,14 @@ It writes to the same Supabase `items` table the storefront (`../storefront`) re
 
 ```bash
 cd scanner
-cp .env.example .env.local   # add ANTHROPIC_API_KEY (+ Supabase keys to use the shared DB)
+cp .env.example .env.local   # add GEMINI_API_KEY (+ Supabase keys to use the shared DB)
 npm install
 npm run dev                  # http://localhost:3001  (storefront uses :3000)
 ```
 
 - **No Supabase keys** → items go to `scanner/data/items.json`, photos to `scanner/data/photos/`. That's enough for a standalone demo.
-- **No Anthropic key** (or `ANALYSIS_PROVIDER=fallback`) → a clearly labelled fallback analyser runs. It uses the colour and shape from the camera, marks the item `needs_review`, and scanning keeps working.
+- **AI:** Gemini `gemini-3.5-flash-lite` when `GEMINI_API_KEY` is set (~3 s per garment); Claude if only `ANTHROPIC_API_KEY` is set. `ANALYSIS_PROVIDER` forces one.
+- **No AI key** (or `ANALYSIS_PROVIDER=fallback`) → a clearly labelled fallback analyser runs. It uses the colour and shape from the camera, marks the item `needs_review`, and scanning keeps working.
 - **Supabase:** run `storefront/supabase/schema.sql` first, then `scanner/supabase/scanner.sql`. The second one adds the scanner's optional columns. If you forget it, the scanner still writes the shared columns and logs a warning.
 - **Deploy:** Vercel project with Root Directory = `scanner` and the same env vars. The camera needs `https://` or `localhost`.
 
@@ -86,7 +87,7 @@ The upload contains two images:
 | `original_photo_url` | full untouched frame |
 | `subcategory`, `secondary_colours`, `pattern`, `barcode` | extra AI metadata |
 | `ai_confidence` | jsonb `{overall, category, colour, size, brand, condition, price_tag}`, each 0–1 |
-| `ai_model`, `scan_source` | provenance |
+| `ai_model`, `scan_source` | provenance (e.g. `gemini-3.5-flash-lite`, `fallback`) |
 | `silhouette`, `three_d_template_type`, `three_d_asset_url` | future 3D mannequin hooks (template filled from category, asset URL null) |
 
 **Query available stock:**
@@ -122,7 +123,9 @@ supabase
 | `lib/detector.ts` | presence / motion / bbox / colour from 64×48 frames |
 | `lib/client/capture.ts` | full-res capture + crop, BarcodeDetector, rack QR parsing |
 | `app/api/scan/route.ts` | upload photos ∥ analyse → insert item |
-| `lib/analysis/claude.ts` | Claude vision call (structured JSON output) |
+| `lib/analysis/gemini.ts` | Gemini vision call (JSON schema output) — default |
+| `lib/analysis/claude.ts` | Claude vision call (alternative provider) |
+| `lib/analysis/prompt.ts` | cataloguing instructions shared by both |
 | `lib/analysis/fallback.ts` | **fallback analyser**, used only when AI is unavailable |
 | `lib/analysis/toItem.ts` | analysis → `items` row (price rules, review flag) |
 | `lib/store/{supabase,local}.ts` | Supabase or local JSON storage |
