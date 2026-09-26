@@ -111,6 +111,8 @@ export default function Scanner() {
     lastColour: null as [number, number, number] | null,
     lastCodeScan: 0,
     codeBusy: false,
+    lastTelemetry: 0,
+    lastSnapshot: 0,
     pending: null as Pending | null,
   });
 
@@ -341,6 +343,15 @@ export default function Scanner() {
 
       if (++tick % 2 === 0) setMeters({ presence: st.presence, motion: st.motion });
       if (S.debug && maskRef.current) drawMask(maskRef.current, det.mask);
+      if (S.debug && now - e.lastTelemetry > 500) {
+        e.lastTelemetry = now;
+        const snap = now - e.lastSnapshot > 3000;
+        if (snap) e.lastSnapshot = now;
+        sendTelemetry(v, maskRef.current, snap, {
+          phase: p, presence: round(st.presence), motion: round(st.motion), present: e.present, armed: e.armed,
+          busy: e.busy, enter: S.enter, still: S.still, stableMs: S.stableMs, bbox: st.bbox,
+        });
+      }
 
       if (det.calibrating) { setPhase("calibrating"); return; }
       if (wasCalibrating) { e.present = false; setPhase("ready"); return; }
@@ -610,6 +621,23 @@ export default function Scanner() {
       )}
     </div>
   );
+}
+
+const round = (v: number) => Math.round(v * 10000) / 10000;
+
+/** Debug mode only: stream detection stats (and a snapshot every 3 s) to the dev server for tuning. */
+function sendTelemetry(video: HTMLVideoElement, mask: HTMLCanvasElement | null, snapshot: boolean, stats: Record<string, unknown>) {
+  const body: Record<string, unknown> = { ...stats };
+  if (snapshot && video.videoWidth) {
+    const c = document.createElement("canvas");
+    c.width = 640;
+    c.height = Math.round((640 * video.videoHeight) / video.videoWidth);
+    c.getContext("2d")!.drawImage(video, 0, 0, c.width, c.height);
+    body.frame = c.toDataURL("image/jpeg", 0.7);
+    if (mask) body.mask = mask.toDataURL("image/png");
+  }
+  fetch("/api/telemetry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    .catch(() => {});
 }
 
 function drawMask(canvas: HTMLCanvasElement, mask: Uint8Array) {
