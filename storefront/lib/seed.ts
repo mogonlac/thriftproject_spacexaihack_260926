@@ -44,7 +44,7 @@ const seed: SeedInput[] = [
 const BASE_DATE = Date.parse("2026-09-20T09:00:00Z");
 
 export const SEED_ITEMS: Item[] = seed.map(({ photo, tags, ...rest }, i) => {
-  const at = new Date(BASE_DATE + i * 37 * 60_000).toISOString();
+  const at = new Date(BASE_DATE - i * 37 * 60_000).toISOString();
   return {
     ...rest,
     id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
