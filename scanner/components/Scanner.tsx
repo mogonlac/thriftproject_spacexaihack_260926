@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@thrift/shared/Logo";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ItemCard } from "./ItemCard";
@@ -7,6 +8,7 @@ import { DEFAULT_ROI, DH, DW, GarmentDetector, nearestColourName, type Roi } fro
 import { captureFrame, grabBackground, parseRackCode, readCodes } from "@/lib/client/capture";
 import { setSoundEnabled, sounds } from "@/lib/client/sound";
 import { gbp, sizeText } from "@/lib/format";
+import { STOREFRONT_URL } from "@/lib/links";
 import type { Item } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -460,8 +462,8 @@ export default function Scanner() {
     <div className={`scanner phase-${phase}`} onPointerDown={() => sounds.unlock()}>
       <header className="topbar">
         <div className="brand">
-          <span className="logo-dot" />
-          <strong>Intake Scanner</strong>
+          <Logo size={30} />
+          <strong>Intake</strong>
           <span className="muted station">{STATION}</span>
         </div>
         <button className="rack-pill" onClick={() => setShowRacks(true)} title="Change rack (keys 1–9 or show a RACK:xx QR card)">
@@ -479,6 +481,7 @@ export default function Scanner() {
             </span>
           )}
           <Link href="/inventory" className="btn ghost">Inventory</Link>
+          <a href={`${STOREFRONT_URL}/staff`} className="btn ghost">Till ↗</a>
           <button className="btn ghost" onClick={() => setShowSettings((s) => !s)}>Settings</button>
         </nav>
       </header>

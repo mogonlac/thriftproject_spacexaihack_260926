@@ -1,5 +1,6 @@
 "use client";
 
+import { Logo } from "@thrift/shared/Logo";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ItemCard } from "@/components/ItemCard";
@@ -55,8 +56,8 @@ export default function InventoryPage() {
     <div className="inventory">
       <header className="topbar">
         <div className="brand">
-          <span className="logo-dot" />
-          <strong>Scanned inventory</strong>
+          <Logo size={30} />
+          <strong>Inventory</strong>
           <span className="muted station">{items ? `${items.length} items` : "loading…"}</span>
         </div>
         <nav className="top-actions">

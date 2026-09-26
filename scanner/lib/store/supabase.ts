@@ -13,13 +13,16 @@ const SHARED_COLUMNS = [
   "suggested_price_pence", "rack", "photos", "tags", "status",
 ] as const;
 
+// Accepts the storefront's NEXT_PUBLIC_SUPABASE_URL too, so one shared .env works for both apps.
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+
 export function supabaseConfigured() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
 let client: SupabaseClient | null = null;
 function db() {
-  client ??= createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+  client ??= createClient(SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false },
   });
   return client;
