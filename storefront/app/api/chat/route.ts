@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       tool_calls: result.toolCalls,
       item_ids: result.items.map((i) => i.id),
       reply: result.reply,
-      model: MODEL,
+      model: result.model,
       latency_ms: Date.now() - started,
     });
     return Response.json({ reply: result.reply, items: result.items });

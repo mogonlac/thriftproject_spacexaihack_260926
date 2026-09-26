@@ -1,4 +1,5 @@
 import { repo } from "@/lib/data";
+import { staffAuthorised } from "@/lib/staffAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  if (!staffAuthorised(req)) return Response.json({ error: "unauthorised" }, { status: 401 });
   const limit = Number(new URL(req.url).searchParams.get("limit") ?? 20);
   return Response.json({ receipts: await repo.listReceipts(Math.min(limit, 100)) });
 }

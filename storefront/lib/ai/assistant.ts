@@ -41,6 +41,8 @@ export interface AssistantResult {
   reply: string;
   items: Item[];
   toolCalls: { name: string; args: unknown; result_ids?: string[] }[];
+  /** Concrete model version that answered (the env value may be an alias). */
+  model: string;
 }
 
 const searchInventory: FunctionDeclaration = {
@@ -165,6 +167,7 @@ export async function runAssistant(history: ChatTurn[], profile: ShopperProfile)
 
   const seen = new Set<string>();
   const toolCalls: AssistantResult["toolCalls"] = [];
+  let model = MODEL;
 
   for (let step = 0; step < MAX_STEPS; step++) {
     const res = await ai.models.generateContent({
@@ -182,10 +185,11 @@ export async function runAssistant(history: ChatTurn[], profile: ShopperProfile)
       },
     });
 
+    if (res.modelVersion) model = res.modelVersion;
     const calls = res.functionCalls ?? [];
     if (calls.length === 0) {
       // Model answered in plain text without showing anything — allowed, but no cards.
-      return { reply: res.text?.trim() || "Sorry, I didn't catch that. What are you looking for?", items: [], toolCalls };
+      return { reply: res.text?.trim() || "Sorry, I didn't catch that. What are you looking for?", items: [], toolCalls, model };
     }
 
     // Keep the model's turn verbatim (preserves thought signatures).
@@ -203,7 +207,7 @@ export async function runAssistant(history: ChatTurn[], profile: ShopperProfile)
         const items = (await repo.getItems(allowed)).filter((i) => i.status === "available");
         toolCalls.push({ name: "show_items", args: { ...args, dropped_ids: requested.filter((id) => !seen.has(id)) }, result_ids: items.map((i) => i.id) });
         const message = typeof args.message === "string" && args.message.trim() ? args.message.trim() : "Here's what I found on the rails.";
-        return { reply: message, items, toolCalls };
+        return { reply: message, items, toolCalls, model };
       }
 
       if (call.name === "search_inventory") {
@@ -233,5 +237,6 @@ export async function runAssistant(history: ChatTurn[], profile: ShopperProfile)
     reply: "Sorry, I got a bit lost looking for that. Could you try asking another way?",
     items: [],
     toolCalls,
+    model,
   };
 }
