@@ -2,6 +2,7 @@ import type { NewItem } from "../types";
 import type { AnalysisResult } from "./schema";
 
 const TAG_PRICE_MIN_CONFIDENCE = 0.6;
+const MARKET_MIN_CONFIDENCE = 0.4;
 const REVIEW_BELOW_CONFIDENCE = 0.5;
 
 const toPence = (gbp: number) => Math.max(0, Math.round(gbp * 100));
@@ -13,14 +14,16 @@ const TEMPLATE_BY_CATEGORY: Record<string, string> = {
 };
 
 export function analysisToItem(
-  { analysis: a, model }: AnalysisResult,
+  { analysis: a, model, valuation }: AnalysisResult,
   ctx: { rack: string; photoUrls: string[]; originalPhotoUrl: string | null; scanSource: string; barcode: string | null },
 ): NewItem {
   const c = a.confidence;
   const tagPrice = a.tag_price_gbp != null && a.tag_price_gbp > 0 && c.price_tag >= TAG_PRICE_MIN_CONFIDENCE
     ? a.tag_price_gbp
     : null;
-  const suggested = toPence(a.suggested_price_gbp > 0 ? a.suggested_price_gbp : 5);
+  // Market-based price beats the model's own guess when the evidence is decent.
+  const market = valuation?.suggested_gbp != null && valuation.confidence >= MARKET_MIN_CONFIDENCE ? valuation.suggested_gbp : null;
+  const suggested = toPence(market ?? (a.suggested_price_gbp > 0 ? a.suggested_price_gbp : 5));
 
   return {
     sku: null,
@@ -57,5 +60,6 @@ export function analysisToItem(
     silhouette: a.silhouette,
     three_d_template_type: TEMPLATE_BY_CATEGORY[a.category] ?? null,
     three_d_asset_url: null,
+    valuation: valuation ?? null,
   };
 }

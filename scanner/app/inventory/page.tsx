@@ -78,7 +78,7 @@ export default function InventoryPage() {
       <div className="inv-grid">
         {shown.map((item) => (
           <div key={item.id} className="inv-cell">
-            <ItemCard item={item} />
+            <ItemCard item={item} showSources />
             <div className="inv-actions">
               {item.needs_review && item.price_source === "ai_suggested" && (
                 <button className="btn primary small" onClick={() => patch(item.id, { price_pence: item.price_pence, needs_review: false })}>

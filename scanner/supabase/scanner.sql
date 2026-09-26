@@ -22,6 +22,11 @@ alter table public.items
   -- Future 3D mannequin hooks (null for now)
   add column if not exists silhouette text,                   -- 'boxy', 'fitted', 'a-line', ...
   add column if not exists three_d_template_type text,        -- generic template id, e.g. 'jacket_denim'
-  add column if not exists three_d_asset_url text;
+  add column if not exists three_d_asset_url text,
+
+  -- Market evidence behind suggested_price_pence (UK resale listings via Tavily web search):
+  -- {"resale_low_gbp":30,"resale_typical_gbp":45,"resale_high_gbp":80,"suggested_gbp":24.5,
+  --  "summary":"...","sources":[{"title":"...","url":"..."}],"confidence":0.8,...}
+  add column if not exists valuation jsonb;
 
 create index if not exists items_needs_review_idx on public.items (needs_review) where needs_review;

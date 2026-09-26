@@ -99,7 +99,8 @@ export default function Scanner() {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [showRacks, setShowRacks] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [status, setStatus] = useState<{ store: string; ai: string } | null>(null);
+  const [status, setStatus] = useState<{ store: string; ai: string; market: boolean } | null>(null);
+  const [analysingStep, setAnalysingStep] = useState(0);
 
   const eng = useRef({
     present: false,
@@ -430,6 +431,14 @@ export default function Scanner() {
     return () => clearInterval(id);
   }, [capture, setPhase, updateSettings]);
 
+  // Analysing sub-steps (identification ~2.5 s, then market lookup)
+  useEffect(() => {
+    if (phase !== "analysing") return;
+    setAnalysingStep(0);
+    const t = setTimeout(() => setAnalysingStep(1), 2600);
+    return () => clearTimeout(t);
+  }, [phase]);
+
   // ---------------- Keyboard shortcuts ----------------
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -463,6 +472,7 @@ export default function Scanner() {
           {status && (
             <span className="chips">
               <span className={`chip ${status.ai === "fallback" ? "warn" : "ok"}`}>AI · {status.ai}</span>
+              {status.market && <span className="chip ok">Prices · live market</span>}
               <span className={`chip ${status.store === "supabase" ? "ok" : "warn"}`}>
                 DB · {status.store === "supabase" ? "Supabase" : "local file"}
               </span>
@@ -514,7 +524,7 @@ export default function Scanner() {
             <StatusIcon phase={phase} progress={progress} />
             <h1>{phase === "rack-set" ? `Rack ${settings.rack}` : copy.title}</h1>
             <p className="sub">
-              {phase === "camera-error" ? cameraError : phase === "error" ? errorMsg : copy.sub}
+              {phase === "camera-error" ? cameraError : phase === "error" ? errorMsg : phase === "analysing" ? "" : copy.sub}
             </p>
 
             {phase === "error" && (
@@ -524,6 +534,12 @@ export default function Scanner() {
               </div>
             )}
 
+            {phase === "analysing" && (
+              <p className="sub step">
+                {analysingStep === 0 ? "Identifying garment, size and price tag…"
+                  : status?.market ? "Checking resale prices on eBay, Vinted & Depop…" : "Reading tags…"}
+              </p>
+            )}
             {phase === "analysing" && capturedUrl && (
               <img className="captured-thumb" src={capturedUrl} alt="Captured garment" />
             )}
@@ -532,7 +548,7 @@ export default function Scanner() {
               <div className="saved-summary">
                 <div className="saved-title">{lastItem.title}</div>
                 <div className="saved-line">
-                  {[sizeText(lastItem) && `Size ${sizeText(lastItem)}`, gbp(lastItem.price_pence) + (lastItem.price_source === "ai_suggested" ? " (est.)" : ""), `Rack ${lastItem.rack}`]
+                  {[sizeText(lastItem) && `Size ${sizeText(lastItem)}`, gbp(lastItem.price_pence) + (lastItem.price_source === "ai_suggested" ? " (est.)" : ""), lastItem.valuation?.resale_typical_gbp != null && `resale ~£${Math.round(lastItem.valuation.resale_typical_gbp)}`, `Rack ${lastItem.rack}`]
                     .filter(Boolean).join("  ·  ")}
                 </div>
               </div>

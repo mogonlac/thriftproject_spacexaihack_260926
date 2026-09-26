@@ -3,8 +3,11 @@
 import { categoryLabel, COLOUR_SWATCH, gbp, PRICE_SOURCE_LABEL, sizeText } from "@/lib/format";
 import { CONDITION_LABELS, type Item } from "@/lib/types";
 
+const gbpShort = (v: number) => `£${v % 1 ? v.toFixed(2) : v}`;
+
 /** Compact record view used on the scanner success panel and the inventory page. */
-export function ItemCard({ item, large = false }: { item: Item; large?: boolean }) {
+export function ItemCard({ item, large = false, showSources = false }: { item: Item; large?: boolean; showSources?: boolean }) {
+  const v = item.valuation;
   const size = sizeText(item);
   const conf = item.ai_confidence?.overall;
   return (
@@ -37,6 +40,28 @@ export function ItemCard({ item, large = false }: { item: Item; large?: boolean 
           <div><dt>Condition</dt><dd>{CONDITION_LABELS[item.condition]}</dd></div>
           {item.brand && <div><dt>Brand</dt><dd>{item.brand}</dd></div>}
         </dl>
+        {v?.resale_typical_gbp != null && (
+          <div className="market">
+            <span className="market-label">Resale market</span>
+            <span>
+              {v.resale_low_gbp != null && v.resale_high_gbp != null
+                ? `${gbpShort(v.resale_low_gbp)}–${gbpShort(v.resale_high_gbp)}`
+                : `~${gbpShort(v.resale_typical_gbp)}`}
+              {" · typical "}{gbpShort(v.resale_typical_gbp)}
+            </span>
+            {showSources && v.sources.length > 0 && (
+              <details>
+                <summary>Evidence</summary>
+                <p>{v.summary}</p>
+                <ul>
+                  {v.sources.map((s) => (
+                    <li key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.title || new URL(s.url).hostname}</a></li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
         {item.tags.length > 0 && (
           <div className="tags">{item.tags.map((t) => <span key={t}>{t}</span>)}</div>
         )}

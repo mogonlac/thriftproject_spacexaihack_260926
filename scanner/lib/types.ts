@@ -118,6 +118,20 @@ export interface Item {
   silhouette: string | null;
   three_d_template_type: string | null;
   three_d_asset_url: string | null;
+  valuation: ItemValuation | null;
+}
+
+/** Market evidence behind suggested_price_pence (UK resale listings via web search). */
+export interface ItemValuation {
+  provider: "tavily";
+  query: string;
+  resale_low_gbp: number | null;
+  resale_typical_gbp: number | null;
+  resale_high_gbp: number | null;
+  suggested_gbp: number | null;
+  summary: string;
+  sources: { title: string; url: string }[];
+  confidence: number;
 }
 
 /** 0..1 per field. Low values mean "treat as a guess". */

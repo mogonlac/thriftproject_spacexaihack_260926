@@ -54,6 +54,7 @@ export interface AnalysisResult {
   model: string;         // 'claude-opus-5' | 'fallback'
   fallbackReason?: string;
   tagCrops?: number;     // how many tag close-ups were read in the second pass
+  valuation?: import("./valuation").Valuation | null;
 }
 
 // The API receives enums as guidance, not hard constraints, so normalise the

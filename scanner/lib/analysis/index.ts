@@ -4,6 +4,7 @@ import { fallbackAnalysis } from "./fallback";
 import { ANALYSIS_INSTRUCTIONS, TAG_READ_INSTRUCTIONS } from "./prompt";
 import { coerceAnalysis, coerceTagRead, GarmentAnalysisSchema, TagReadSchema, type AnalysisResult, type ClientHints } from "./schema";
 import { cropLabels, downscale, mergeTagRead, needsTagPass } from "./tags";
+import { valueGarment, type Valuation } from "./valuation";
 import { activeModel, activeProvider, visionJson } from "./vision";
 
 export { activeModel, activeProvider };
@@ -21,6 +22,7 @@ function describeError(err: unknown) {
 /**
  * Pass 1: whole garment (downscaled) → category, colour, condition, … and where the tags are.
  * Pass 2 (only if a tag is visible but price/size wasn't read): enlarged full-res tag crops → price, size, brand.
+ * In parallel with pass 2: market valuation from UK resale listings (Tavily), when configured.
  * Any AI failure falls back to the clearly-labelled fallback analyser. Never throws.
  */
 export async function analyseGarment(photo: Buffer, hints: ClientHints): Promise<AnalysisResult> {
@@ -45,26 +47,38 @@ export async function analyseGarment(photo: Buffer, hints: ClientHints): Promise
     return { analysis: fallbackAnalysis(hints), model: "fallback", fallbackReason: describeError(err) };
   }
 
-  let tagCrops = 0;
-  if (analysis.is_garment && needsTagPass(analysis)) {
+  if (!analysis.is_garment) return { analysis, model: activeModel() };
+  const first = analysis;
+
+  const tagPass = async () => {
+    if (!needsTagPass(first)) return { analysis: first, crops: 0 };
     try {
-      const crops = await cropLabels(photo, analysis.label_boxes);
-      tagCrops = crops.length;
-      if (crops.length) {
-        const read = coerceTagRead(await visionJson({
-          system: TAG_READ_INSTRUCTIONS,
-          text: `Read these ${crops.length} tag/label close-up(s) from one garment.`,
-          images: crops,
-          schema: TagReadSchema,
-          timeoutMs: 20_000,
-        }));
-        analysis = mergeTagRead(analysis, read);
-      }
+      const crops = await cropLabels(photo, first.label_boxes);
+      if (!crops.length) return { analysis: first, crops: 0 };
+      const read = coerceTagRead(await visionJson({
+        system: TAG_READ_INSTRUCTIONS,
+        text: `Read these ${crops.length} tag/label close-up(s) from one garment.`,
+        images: crops,
+        schema: TagReadSchema,
+        timeoutMs: 20_000,
+      }));
+      return { analysis: mergeTagRead(first, read), crops: crops.length };
     } catch (err) {
       // The first-pass result is still good; the tag close-up is a bonus.
       console.warn("[scanner] tag close-up pass failed:", describeError(err));
+      return { analysis: first, crops: 0 };
     }
-  }
+  };
 
-  return { analysis, model: activeModel(), tagCrops };
+  const valuation = async (): Promise<Valuation | null> => {
+    try {
+      return await valueGarment(first);
+    } catch (err) {
+      console.warn("[scanner] market valuation failed:", describeError(err));
+      return null;
+    }
+  };
+
+  const [tags, market] = await Promise.all([tagPass(), valuation()]);
+  return { analysis: tags.analysis, model: activeModel(), tagCrops: tags.crops, valuation: market };
 }
