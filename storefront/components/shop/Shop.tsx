@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useHydrated } from "@/hooks/useHydrated";
+import { useIdleReset } from "@/hooks/useIdleReset";
 import { useLiveItems } from "@/hooks/useLiveItems";
 import { searchItems } from "@/lib/search";
 import { useKiosk } from "@/lib/store";
@@ -33,6 +34,12 @@ export function Shop({ initialItems }: { initialItems: Item[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
+  // Walk-away protection: clear the session and return to the welcome screen.
+  const idleSecondsLeft = useIdleReset(() => {
+    resetSession();
+    router.push("/");
+  });
+
   // Apply the shopper's fit from the welcome screen once the session is restored.
   const appliedProfile = useRef(false);
   useEffect(() => {
@@ -44,10 +51,11 @@ export function Shop({ initialItems }: { initialItems: Item[] }) {
 
   // Category tabs only show categories that have stock under the other filters.
   const withoutCategory = useMemo(() => searchItems(items, toQuery(filters, false)), [items, filters]);
-  const visible = useMemo(
-    () => (filters.category ? withoutCategory.filter((i) => i.category === filters.category) : withoutCategory),
-    [withoutCategory, filters.category],
-  );
+  const visible = useMemo(() => {
+    const list = filters.category ? withoutCategory.filter((i) => i.category === filters.category) : withoutCategory;
+    // Items someone else has reserved sink to the bottom (stable sort keeps relevance order).
+    return [...list].sort((x, y) => Number(x.status !== "available") - Number(y.status !== "available"));
+  }, [withoutCategory, filters.category]);
   const categoryCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const i of withoutCategory) m.set(i.category, (m.get(i.category) ?? 0) + 1);
@@ -191,6 +199,13 @@ export function Shop({ initialItems }: { initialItems: Item[] }) {
         chatOpen={panel === "chat"}
         onChat={() => setPanel(panel === "chat" ? null : "chat")}
         onCart={() => setPanel("cart")}
+        notice={
+          idleSecondsLeft !== null && (
+            <div className="label flex h-12 items-center justify-center gap-3 border-b border-line bg-ink text-base tracking-[0.12em] text-paper" role="status">
+              Still shopping? Tap anywhere — otherwise we&apos;ll start fresh for the next person in {idleSecondsLeft}s
+            </div>
+          )
+        }
       />
     </div>
   );

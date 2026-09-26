@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useIdleReset } from "@/hooks/useIdleReset";
 import { estimateSize, cmToFtIn, kgToStLb, WAIST_OPTIONS, type Gender } from "@/lib/sizing";
 import { useKiosk } from "@/lib/store";
 import { ALPHA_SIZES, type AlphaSize } from "@/lib/types";
@@ -21,6 +22,9 @@ export function Welcome() {
   const setProfile = useKiosk((s) => s.setProfile);
   const [step, setStep] = useState<Step>("enter");
   const [gender, setGender] = useState<Gender>("womens");
+
+  // Someone walked away mid-setup: fall back to the Enter screen.
+  useIdleReset(() => setStep("enter"), { idleMs: 60_000, warnMs: 0 });
 
   useEffect(() => {
     router.prefetch("/shop");

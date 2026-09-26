@@ -1,7 +1,6 @@
 -- Charity shop storefront schema. Run this once in the Supabase SQL editor,
 -- then run seed.sql for demo data. Safe to re-run.
 
-create extension if not exists pgcrypto;
 
 -- ---------------------------------------------------------------------------
 -- receipts (created by the kiosk when a shopper prints their list)
