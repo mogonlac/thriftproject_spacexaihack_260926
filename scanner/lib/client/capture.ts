@@ -1,7 +1,7 @@
 import type { Roi } from "../detector";
 
 const MAX_ORIGINAL = 1600; // px, long edge
-const MAX_CROP = 1400;
+const MAX_CROP = 2400; // keep full camera resolution so small tags stay legible
 
 function toJpeg(canvas: HTMLCanvasElement, quality = 0.86): Promise<Blob> {
   return new Promise((resolve, reject) =>

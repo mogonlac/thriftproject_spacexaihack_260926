@@ -1,27 +1,12 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { analyseWithClaude, CLAUDE_MODEL } from "./claude";
 import { fallbackAnalysis } from "./fallback";
-import { analyseWithGemini, GEMINI_MODEL } from "./gemini";
-import type { AnalysisResult, ClientHints, GarmentAnalysis } from "./schema";
+import { ANALYSIS_INSTRUCTIONS, TAG_READ_INSTRUCTIONS } from "./prompt";
+import { coerceAnalysis, coerceTagRead, GarmentAnalysisSchema, TagReadSchema, type AnalysisResult, type ClientHints } from "./schema";
+import { cropLabels, downscale, mergeTagRead, needsTagPass } from "./tags";
+import { activeModel, activeProvider, visionJson } from "./vision";
 
-type Provider = "gemini" | "anthropic" | "fallback";
-
-/** ANALYSIS_PROVIDER wins; otherwise the first provider with a key (Gemini, then Claude). */
-export function activeProvider(): Provider {
-  const forced = process.env.ANALYSIS_PROVIDER as Provider | undefined;
-  if (forced === "fallback") return "fallback";
-  if (forced === "gemini" && process.env.GEMINI_API_KEY) return "gemini";
-  if (forced === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
-  if (process.env.GEMINI_API_KEY) return "gemini";
-  if (process.env.ANTHROPIC_API_KEY) return "anthropic";
-  return "fallback";
-}
-
-export function activeModel() {
-  const p = activeProvider();
-  return p === "gemini" ? GEMINI_MODEL : p === "anthropic" ? CLAUDE_MODEL : "fallback";
-}
+export { activeModel, activeProvider };
 
 function describeError(err: unknown) {
   if (err instanceof Anthropic.AuthenticationError) return "Invalid ANTHROPIC_API_KEY";
@@ -33,19 +18,53 @@ function describeError(err: unknown) {
   return "AI failed";
 }
 
-/** Runs the configured vision model; on any failure, the clearly-labelled fallback. Never throws. */
-export async function analyseGarment(jpegBase64: string, hints: ClientHints): Promise<AnalysisResult> {
-  const provider = activeProvider();
-  if (provider === "fallback") {
+/**
+ * Pass 1: whole garment (downscaled) → category, colour, condition, … and where the tags are.
+ * Pass 2 (only if a tag is visible but price/size wasn't read): enlarged full-res tag crops → price, size, brand.
+ * Any AI failure falls back to the clearly-labelled fallback analyser. Never throws.
+ */
+export async function analyseGarment(photo: Buffer, hints: ClientHints): Promise<AnalysisResult> {
+  if (activeProvider() === "fallback") {
     return { analysis: fallbackAnalysis(hints), model: "fallback", fallbackReason: "AI not configured" };
   }
+
+  let analysis;
   try {
-    const run: Promise<GarmentAnalysis> = provider === "gemini"
-      ? analyseWithGemini(jpegBase64, hints.barcode ?? null)
-      : analyseWithClaude(jpegBase64, hints.barcode ?? null);
-    return { analysis: await run, model: activeModel() };
+    const raw = await visionJson({
+      system: ANALYSIS_INSTRUCTIONS,
+      text: hints.barcode
+        ? `Catalogue this item. A barcode scanner also decoded this code from the image: ${hints.barcode}`
+        : "Catalogue this item.",
+      images: [await downscale(photo)],
+      schema: GarmentAnalysisSchema,
+      timeoutMs: 40_000,
+    });
+    analysis = coerceAnalysis(raw);
   } catch (err) {
-    console.error(`[scanner] ${provider} analysis failed, using fallback:`, err);
+    console.error("[scanner] analysis failed, using fallback:", err);
     return { analysis: fallbackAnalysis(hints), model: "fallback", fallbackReason: describeError(err) };
   }
+
+  let tagCrops = 0;
+  if (analysis.is_garment && needsTagPass(analysis)) {
+    try {
+      const crops = await cropLabels(photo, analysis.label_boxes);
+      tagCrops = crops.length;
+      if (crops.length) {
+        const read = coerceTagRead(await visionJson({
+          system: TAG_READ_INSTRUCTIONS,
+          text: `Read these ${crops.length} tag/label close-up(s) from one garment.`,
+          images: crops,
+          schema: TagReadSchema,
+          timeoutMs: 20_000,
+        }));
+        analysis = mergeTagRead(analysis, read);
+      }
+    } catch (err) {
+      // The first-pass result is still good; the tag close-up is a bonus.
+      console.warn("[scanner] tag close-up pass failed:", describeError(err));
+    }
+  }
+
+  return { analysis, model: activeModel(), tagCrops };
 }

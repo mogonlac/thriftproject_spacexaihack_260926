@@ -33,6 +33,7 @@ export function fallbackAnalysis(hints: ClientHints): GarmentAnalysis {
     code: hints.barcode ?? null,
     silhouette: null,
     tags: [colour, "needs-review"],
+    label_boxes: [],
     confidence: { overall: 0.1, category: 0.1, colour: 0.4, size: 0, brand: 0, condition: 0.1, price_tag: 0 },
   };
 }

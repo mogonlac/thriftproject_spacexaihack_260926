@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     const [photoUrl, originalUrl, result] = await Promise.all([
       upload(`${id}.jpg`, photoBuf),
       originalBuf ? upload(`${id}-original.jpg`, originalBuf).catch(() => null) : Promise.resolve(null),
-      analyseGarment(photoBuf.toString("base64"), hints),
+      analyseGarment(photoBuf, hints),
     ]);
 
     // The AI saw no garment (empty hanger, a hand, a stray card): don't create an item.
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     );
 
     if (result.fallbackReason) warnings.push(`AI fallback used: ${result.fallbackReason}`);
-    return Response.json({ item, isGarment: result.analysis.is_garment, store: store.kind, warnings });
+    return Response.json({ item, tagCrops: result.tagCrops ?? 0, store: store.kind, warnings });
   } catch (err) {
     console.error("[scanner] scan failed:", err);
     return Response.json(
