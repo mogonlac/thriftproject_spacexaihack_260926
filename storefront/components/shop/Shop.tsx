@@ -2,6 +2,7 @@
 
 import { AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useHydrated } from "@/hooks/useHydrated";
 import { useLiveItems } from "@/hooks/useLiveItems";
@@ -10,6 +11,7 @@ import { useKiosk } from "@/lib/store";
 import { CATEGORIES, CATEGORY_LABELS, type Item } from "@/lib/types";
 import { Close, Filters as FiltersIcon } from "../icons";
 import { Logo } from "../Logo";
+import { CartPanel } from "../receipt/CartPanel";
 import { BottomBar } from "./BottomBar";
 import { FilterSheet } from "./FilterSheet";
 import { EMPTY_FILTERS, filtersFromProfile, sheetFilterCount, toQuery, type Filters } from "./filters";
@@ -19,7 +21,9 @@ import { ProductCard } from "./ProductCard";
 type Panel = "filters" | "cart" | "chat" | null;
 
 export function Shop({ initialItems }: { initialItems: Item[] }) {
-  const { items } = useLiveItems(initialItems);
+  const { items, refresh } = useLiveItems(initialItems);
+  const router = useRouter();
+  const resetSession = useKiosk((s) => s.resetSession);
   const hydrated = useHydrated();
   const profile = useKiosk((s) => s.profile);
 
@@ -151,6 +155,20 @@ export function Shop({ initialItems }: { initialItems: Item[] }) {
       <AnimatePresence>
         {panel === "filters" && (
           <FilterSheet filters={filters} setFilters={update} resultCount={visible.length} onClose={() => setPanel(null)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {panel === "cart" && (
+          <CartPanel
+            liveItems={items}
+            onClose={() => setPanel(null)}
+            onPrinted={() => void refresh()}
+            onNewSession={() => {
+              resetSession();
+              router.push("/");
+            }}
+          />
         )}
       </AnimatePresence>
 
