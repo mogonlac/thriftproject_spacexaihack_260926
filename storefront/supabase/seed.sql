@@ -1,4 +1,4 @@
--- Demo inventory (generated from lib/seed.ts — do not edit by hand).
+-- Demo inventory (generated from packages/shared/src/seed.ts — do not edit by hand).
 -- Photo paths are relative (/seed/*.jpg) and served by the storefront itself.
 insert into public.items (id, sku, title, description, department, category, size_label, size_alpha, waist_in, colour, brand, material, condition, price_pence, suggested_price_pence, rack, photos, tags, status, created_at) values
   ('00000000-0000-4000-8000-000000000001', 'OX-0101', 'Faux fur collar coat', 'Rich brown faux fur coat, fully lined with hook fastenings. Very warm and a real statement piece.', 'womens', 'coats-jackets', '14', 'L', null, 'brown', 'Hobbs', 'Faux fur', 'excellent', 2500, 2500, 'A1', array['/seed/faux-fur-coat.jpg']::text[], array['warm', 'winter', 'vintage', 'statement']::text[], 'available', '2026-09-20T09:00:00.000Z'),

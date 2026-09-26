@@ -1,0 +1,25 @@
+{
+  "name": "thrift-kiosk",
+  "private": true,
+  "description": "Charity shop kiosk: shopper storefront + hands-free intake scanner, sharing one item database and design language.",
+  "workspaces": [
+    "packages/*",
+    "storefront",
+    "scanner"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n shop,scan -c green,magenta \"npm:dev -w storefront\" \"npm:dev -w scanner\"",
+    "dev:storefront": "npm run dev -w storefront",
+    "dev:scanner": "npm run dev -w scanner",
+    "build": "npm run build -w storefront && npm run build -w scanner",
+    "typecheck": "npm exec -w storefront -- tsc --noEmit && npm run typecheck -w scanner",
+    "lint": "npm run lint -w storefront",
+    "reset-demo": "node -e \"require('fs').rmSync('.data',{recursive:true,force:true});console.log('Demo data reset: seed stock restored, receipts and scans cleared.')\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=20.9"
+  }
+}

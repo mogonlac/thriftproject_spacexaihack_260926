@@ -22,7 +22,8 @@ import {
 // checked against what the searches actually returned this turn. Cards are
 // rendered from the database, never from model text.
 
-export const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
+// ASSISTANT_MODEL (not GEMINI_MODEL) so it can differ from the scanner's vision model in the shared .env.
+export const MODEL = process.env.ASSISTANT_MODEL || "gemini-flash-latest";
 const MAX_STEPS = 5;
 const MAX_SHOWN = 8;
 

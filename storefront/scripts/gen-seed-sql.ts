@@ -1,6 +1,6 @@
-// Regenerates supabase/seed.sql from lib/seed.ts.  Run: npm run seed:sql
+// Regenerates supabase/seed.sql from packages/shared/src/seed.ts.  Run: npm run seed:sql
 import { writeFileSync } from "node:fs";
-import { SEED_ITEMS } from "../lib/seed.ts";
+import { SEED_ITEMS } from "../../packages/shared/src/seed.ts";
 
 const q = (v: unknown): string => {
   if (v === null || v === undefined) return "null";
@@ -17,7 +17,7 @@ const cols = [
 
 const rows = SEED_ITEMS.map((item) => `  (${cols.map((c) => q(item[c])).join(", ")})`);
 
-const sql = `-- Demo inventory (generated from lib/seed.ts — do not edit by hand).
+const sql = `-- Demo inventory (generated from packages/shared/src/seed.ts — do not edit by hand).
 -- Photo paths are relative (/seed/*.jpg) and served by the storefront itself.
 insert into public.items (${cols.join(", ")}) values
 ${rows.join(",\n")}

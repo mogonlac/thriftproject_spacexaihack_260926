@@ -1,0 +1,58 @@
+/*
+ * Shared design language for the storefront and the scanner.
+ * Warm, minimal, Zara-inspired: off-white paper, black hairlines, square
+ * corners, condensed uppercase captions, one Oxfam-green accent.
+ *
+ * Plain CSS custom properties so it works with Tailwind (storefront maps these
+ * in its @theme block) and with hand-written CSS (scanner).
+ * Fonts are loaded per app with next/font using these variable names:
+ *   --font-archivo (headings/labels), --font-inter (body), --font-plex-mono (receipts/code)
+ */
+
+:root {
+  /* colour */
+  --paper: #fbfaf7;
+  --card: #ffffff;
+  --ink: #141414;
+  --muted: #6f6b66;
+  --line: #1a1a1a;
+  --soft: #e7e3dc;
+  --accent: #61a534; /* Oxfam green */
+  --accent-ink: #3f7a1c;
+  --warn: #b4471f;
+  --amber: #d99a1e;
+
+  /* type */
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-code: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Condensed uppercase caption — the Zara label look. */
+.label {
+  font-family: var(--font-heading);
+  font-stretch: 75%;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* Heavy condensed display type for headlines and big numbers. */
+.display {
+  font-family: var(--font-heading);
+  font-stretch: 62%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.005em;
+  line-height: 0.95;
+}

@@ -1,31 +1,26 @@
 @import "tailwindcss";
+/* Shared design tokens + .label/.display type styles (same file the scanner uses). */
+@import "../../packages/shared/src/theme.css";
+@source "../../packages/shared/src";
 
-/* Warm, minimal, Zara-inspired: off-white paper, black hairlines, condensed caps. */
-@theme {
-  --color-paper: #fbfaf7;
-  --color-card: #ffffff;
-  --color-ink: #141414;
-  --color-muted: #6f6b66;
-  --color-line: #1a1a1a;
-  --color-soft: #e7e3dc;
-  --color-accent: #61a534; /* Oxfam green */
-  --color-accent-ink: #3f7a1c;
-  --color-warn: #b4471f;
+/* Expose the shared tokens as Tailwind utilities (bg-paper, text-ink, border-line, font-display, …). */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-soft: var(--soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-warn: var(--warn);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-}
-
-html,
-body {
-  background: var(--color-paper);
-  color: var(--color-ink);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+  --font-mono: var(--font-code);
 }
 
 body {
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
   /* Kiosk: no accidental text selection, callouts or double-tap zoom. */
   -webkit-user-select: none;
   user-select: none;
@@ -39,23 +34,6 @@ input,
 textarea {
   -webkit-user-select: text;
   user-select: text;
-}
-
-/* Condensed uppercase label — the Zara caption look. */
-.label {
-  font-family: var(--font-display);
-  font-stretch: 75%;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.display {
-  font-family: var(--font-display);
-  font-stretch: 62%;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.005em;
-  line-height: 0.95;
 }
 
 .no-scrollbar {
@@ -75,11 +53,11 @@ input[type="range"].kiosk-range {
 }
 input[type="range"].kiosk-range::-webkit-slider-runnable-track {
   height: 2px;
-  background: var(--color-line);
+  background: var(--line);
 }
 input[type="range"].kiosk-range::-moz-range-track {
   height: 2px;
-  background: var(--color-line);
+  background: var(--line);
 }
 input[type="range"].kiosk-range::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -87,16 +65,16 @@ input[type="range"].kiosk-range::-webkit-slider-thumb {
   height: 36px;
   margin-top: -17px;
   border-radius: 999px;
-  background: var(--color-ink);
-  border: 4px solid var(--color-paper);
-  box-shadow: 0 0 0 1px var(--color-ink);
+  background: var(--ink);
+  border: 4px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--ink);
 }
 input[type="range"].kiosk-range::-moz-range-thumb {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: var(--color-ink);
-  border: 4px solid var(--color-paper);
+  background: var(--ink);
+  border: 4px solid var(--paper);
 }
 
 /* Receipt paper: jagged tear-off edge */

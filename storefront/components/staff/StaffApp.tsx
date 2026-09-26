@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { gbp, sizeText } from "@/lib/format";
 import type { AiLogEntry, Item, Receipt, ReceiptOutcome } from "@/lib/types";
-import { Logo } from "../Logo";
+import { Logo } from "@thrift/shared/Logo";
 
 type Tab = "till" | "log" | "stock";
+const SCANNER_URL = process.env.NEXT_PUBLIC_SCANNER_URL || "http://localhost:3001";
 const PIN_KEY = "thrift-staff-pin";
 
 export function StaffApp({ pinRequired }: { pinRequired: boolean }) {
@@ -64,6 +65,9 @@ export function StaffApp({ pinRequired }: { pinRequired: boolean }) {
               {label}
             </button>
           ))}
+          <a href={SCANNER_URL} className="label text-muted flex items-center border-l border-line/20 px-6 text-lg tracking-[0.15em]">
+            Intake ↗
+          </a>
         </nav>
       </header>
       {tab === "till" && <Till api={api} />}

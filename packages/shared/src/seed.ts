@@ -1,7 +1,8 @@
 import type { Item } from "./types";
 
 // Demo inventory so the storefront works before the scanning app is connected.
-// Kept in sync with supabase/seed.sql via `npm run seed:sql`.
+// Kept in sync with storefront/supabase/seed.sql via `npm run seed:sql -w storefront`.
+// Photos live in storefront/public/seed (the scanner proxies /seed/* to the storefront).
 
 type SeedInput = Omit<
   Item,

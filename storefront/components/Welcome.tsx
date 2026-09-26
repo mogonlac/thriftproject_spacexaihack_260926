@@ -9,7 +9,7 @@ import { useKiosk } from "@/lib/store";
 import { ALPHA_SIZES, type AlphaSize } from "@/lib/types";
 import { ArrowLeft } from "./icons";
 import { Chip } from "./Chip";
-import { Logo } from "./Logo";
+import { Logo } from "@thrift/shared/Logo";
 
 type Step = "enter" | "gender" | "fit";
 type FitMode = "measure" | "size";

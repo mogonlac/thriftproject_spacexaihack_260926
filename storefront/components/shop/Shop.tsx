@@ -12,7 +12,7 @@ import { useKiosk } from "@/lib/store";
 import { CATEGORIES, CATEGORY_LABELS, type Item } from "@/lib/types";
 import { Close, Filters as FiltersIcon } from "../icons";
 import { ChatPanel } from "../chat/ChatPanel";
-import { Logo } from "../Logo";
+import { Logo } from "@thrift/shared/Logo";
 import { CartPanel } from "../receipt/CartPanel";
 import { BottomBar } from "./BottomBar";
 import { FilterSheet } from "./FilterSheet";

@@ -6,7 +6,7 @@ export type CreateReceiptResult =
   | { ok: false; unavailable: string[] };
 
 export interface Repo {
-  kind: "supabase" | "memory";
+  kind: "supabase" | "local";
   /** Everything a shopper can see: available + on_receipt (sold items are hidden). */
   listShopItems(): Promise<Item[]>;
   /** Staff inventory view, including sold. */
