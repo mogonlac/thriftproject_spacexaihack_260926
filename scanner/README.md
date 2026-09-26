@@ -8,19 +8,21 @@ It writes to the same Supabase `items` table the storefront (`../storefront`) re
 
 ## Run it
 
+From the repo root (it's an npm workspace, see the [root README](../README.md)):
+
 ```bash
-cd scanner
-cp .env.example .env.local   # add GEMINI_API_KEY (+ Supabase keys to use the shared DB)
 npm install
-npm run dev                  # http://localhost:3001  (storefront uses :3000)
+cp .env.example .env.local   # one env file for both apps: GEMINI_API_KEY (+ TAVILY_API_KEY, Supabase keys)
+npm run dev                  # scanner http://localhost:3001 + storefront :3000  (or: npm run dev:scanner)
 ```
 
-- **No Supabase keys** → items go to `scanner/data/items.json`, photos to `scanner/data/photos/`. That's enough for a standalone demo.
+- **No Supabase keys** → items go to the shared local store `<repo>/.data/items.json`, photos to `.data/photos/`. The storefront reads the same files, so scans appear on the shop floor straight away. `npm run reset-demo` clears it.
 - **AI:** Gemini `gemini-3.5-flash-lite` when `GEMINI_API_KEY` is set (~3 s per garment); Claude if only `ANTHROPIC_API_KEY` is set. `ANALYSIS_PROVIDER` forces one.
 - **Market pricing:** with `TAVILY_API_KEY` set, each garment is priced from UK resale listings (eBay, Vinted, Depop). See *Pricing* below.
 - **No AI key** (or `ANALYSIS_PROVIDER=fallback`) → a clearly labelled fallback analyser runs. It uses the colour and shape from the camera, marks the item `needs_review`, and scanning keeps working.
-- **Supabase:** run `storefront/supabase/schema.sql` first, then `scanner/supabase/scanner.sql`. The second one adds the scanner's optional columns. If you forget it, the scanner still writes the shared columns and logs a warning.
-- **Deploy:** Vercel project with Root Directory = `scanner` and the same env vars. The camera needs `https://` or `localhost`.
+- **Supabase:** run `storefront/supabase/schema.sql` first, then `scanner/supabase/scanner.sql`. Either `SUPABASE_URL` or the storefront's `NEXT_PUBLIC_SUPABASE_URL` works. The second one adds the scanner's optional columns. If you forget it, the scanner still writes the shared columns and logs a warning.
+- **Deploy:** Vercel project with Root Directory = `scanner` and the same env vars. Vercel installs the workspace from the repo root. The camera needs `https://` or `localhost`.
+- **Design:** shares the storefront's design language. Tokens, type styles and the logo come from `packages/shared`, and `app/globals.css` styles the station with them.
 
 ### Station setup
 
@@ -125,7 +127,9 @@ supabase
   .subscribe();
 ```
 
-**HTTP (no Supabase needed):** `GET <scanner>/api/items?limit=60` returns `{ items: Item[] }` in the same shape. Useful for the local demo.
+**HTTP (no Supabase needed):** `GET <scanner>/api/items?limit=60` returns `{ items: Item[] }` in the same shape. Without Supabase, both apps share `.data/` anyway.
+
+**Types:** `lib/types.ts` re-exports the shared contract from `packages/shared/src/types.ts` (`Item` here = core columns + scanner extension).
 
 ---
 
@@ -143,5 +147,5 @@ supabase
 | `lib/analysis/fallback.ts` | **fallback analyser**, used only when AI is unavailable |
 | `lib/analysis/valuation.ts` | Tavily resale search → shop price |
 | `lib/analysis/toItem.ts` | analysis → `items` row (price rules, review flag) |
-| `lib/store/{supabase,local}.ts` | Supabase or local JSON storage |
+| `lib/store/{supabase,local}.ts` | Supabase, or the shared local JSON store (`packages/shared/src/localDb.ts`) |
 | `app/inventory/page.tsx` | internal review screen: confirm AI prices, edit, delete |

@@ -1,6 +1,6 @@
 # Storefront — charity shop kiosk
 
-The shopper-facing half of the project: an iPad kiosk where people browse the shop's real stock, ask an AI assistant for help, collect picks on a "receipt", and print a list showing which rack each item is on. A separate scanning app (built by a teammate) adds items to the shared database.
+The shopper-facing half of the project: an iPad kiosk where people browse the shop's real stock, ask an AI assistant for help, collect picks on a "receipt", and print a list showing which rack each item is on. The [scanner](../scanner) adds items to the same database. See the [root README](../README.md) for the monorepo.
 
 - `/` — welcome: **Enter** → **Women / Men** → fit (height & weight, or size) + waist
 - `/shop` — photo grid, category tabs, filters, search, item detail with rack; **Ask** (bottom-left) opens the assistant, **Receipt** (bottom-right) opens the cart and prints
@@ -9,37 +9,39 @@ The shopper-facing half of the project: an iPad kiosk where people browse the sh
 
 ## Run it
 
+From the repo root:
+
 ```bash
-cd storefront
 npm install
-cp .env.example .env.local   # everything is optional, see below
-npm run dev                  # http://localhost:3000
+cp .env.example .env.local   # one env file for both apps, everything optional
+npm run dev                  # storefront :3000 + scanner :3001 (or: npm run dev:storefront)
 ```
 
-With **no env vars**, the app runs on an in-memory copy of the 30 seed items (`lib/seed.ts`). Receipts and status changes last until the server restarts. That's enough to demo everything except the AI assistant.
+With **no Supabase keys**, the app uses the shared local store in `<repo>/.data/`: JSON files seeded with the 30 demo items (`packages/shared/src/seed.ts`). The scanner writes to the same files, so new scans appear here, and receipts and statuses survive restarts. `npm run reset-demo` starts fresh. Everything except the AI assistant works without any keys.
 
 | Variable | Needed for |
 |---|---|
 | `GEMINI_API_KEY` | AI assistant (server-only, never sent to the browser) |
-| `GEMINI_MODEL` | Optional, default `gemini-flash-latest` |
+| `ASSISTANT_MODEL` | Optional, default `gemini-flash-latest`. It's named separately from the scanner's `GEMINI_MODEL` because they share one env file |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Live updates in the browser (Realtime) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Using Supabase as the database (server-only) |
 | `STAFF_PIN` | Optional PIN for `/staff` |
 | `NEXT_PUBLIC_SHOP_NAME` | Shop name printed on receipts (default "Oxfam Shop") |
+| `NEXT_PUBLIC_SCANNER_URL` | Link from `/staff` to the intake scanner (default http://localhost:3001) |
 
 ### Supabase setup
 
 1. Create a project, open **SQL editor**, and run [`supabase/schema.sql`](supabase/schema.sql), then [`supabase/seed.sql`](supabase/seed.sql). Both are safe to re-run, and re-running `seed.sql` puts the demo items back on the rails.
-2. Copy the URL, anon key and service-role key into `.env.local` (and into Vercel's env vars).
+2. Copy the URL, anon key and service-role key into the root `.env.local` (and into Vercel's env vars). Then run `scanner/supabase/scanner.sql` for the scanner's extra columns.
 3. `schema.sql` also creates the public `item-photos` storage bucket and turns on Realtime for `items`.
 
 ### Deploy (Vercel)
 
-Import the GitHub repo in Vercel and set **Root Directory = `storefront`**. Add the env vars above and deploy. The framework preset is detected automatically.
+Import the GitHub repo in Vercel and set **Root Directory = `storefront`**. Vercel installs the npm workspace from the repo root, including `packages/shared`. Add the env vars above and deploy. On Vercel, use Supabase: the local `.data/` store is temporary there.
 
 ## Item schema (for the scanning app)
 
-The scanner writes one row per donated item into **`public.items`**. Use the Supabase **service-role key** from a server or script. The anon key can only read.
+The scanner writes one row per donated item into **`public.items`**. Use the Supabase **service-role key** from a server or script. The anon key can only read. The TypeScript version of this contract is `packages/shared/src/types.ts`, which both apps import.
 
 | Column | Type | Required | Notes |
 |---|---|---|---|
@@ -116,10 +118,11 @@ New rows appear on the kiosk straight away via Realtime. The database rejects va
 ```
 app/                 routes (welcome, shop, receipt, staff, api/*)
 components/          UI (shop/, receipt/, chat/, staff/)
-lib/data/            repo interface + Supabase and in-memory implementations
+lib/data/            repo interface + Supabase and shared-local-store implementations
 lib/ai/assistant.ts  grounded Gemini tool loop
 lib/search.ts        matcher shared by the browse grid and the AI search tool
-lib/seed.ts          demo inventory (npm run seed:sql regenerates supabase/seed.sql)
+lib/types.ts         re-exports the shared contract from packages/shared
 supabase/            schema.sql, seed.sql
-public/seed/         demo photos (see CREDITS.md)
+public/seed/         demo photos (see CREDITS.md); seed data is packages/shared/src/seed.ts
+                     (npm run seed:sql -w storefront regenerates supabase/seed.sql)
 ```
