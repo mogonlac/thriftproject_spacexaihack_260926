@@ -10,6 +10,7 @@ import { searchItems } from "@/lib/search";
 import { useKiosk } from "@/lib/store";
 import { CATEGORIES, CATEGORY_LABELS, type Item } from "@/lib/types";
 import { Close, Filters as FiltersIcon } from "../icons";
+import { ChatPanel } from "../chat/ChatPanel";
 import { Logo } from "../Logo";
 import { CartPanel } from "../receipt/CartPanel";
 import { BottomBar } from "./BottomBar";
@@ -155,6 +156,18 @@ export function Shop({ initialItems }: { initialItems: Item[] }) {
       <AnimatePresence>
         {panel === "filters" && (
           <FilterSheet filters={filters} setFilters={update} resultCount={visible.length} onClose={() => setPanel(null)} />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {panel === "chat" && (
+          <ChatPanel
+            onClose={() => setPanel(null)}
+            onOpenItem={(id) => {
+              setPanel(null);
+              setOpenId(id);
+            }}
+          />
         )}
       </AnimatePresence>
 
